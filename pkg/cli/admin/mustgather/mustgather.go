@@ -97,6 +97,8 @@ func NewMustGatherCommand(f kcmdutil.Factory, streams genericclioptions.IOStream
 	cmd.Flags().StringVar(&o.timeoutStr, "timeout", "10m", "The length of time to gather data, like 5s, 2m, or 3h, higher than zero. Defaults to 10 minutes.")
 	cmd.Flags().StringVar(&o.RunNamespace, "run-namespace", o.RunNamespace, "An existing namespace where must-gather pods should run. If not specified a temporary namespace will be generated.")
 	cmd.Flags().MarkHidden("run-namespace")
+	cmd.Flags().StringVar(&o.ServiceAccount, "service-account", o.ServiceAccount, "An alternate service account pods should run with rather than default.")
+	cmd.Flags().MarkHidden("service-account")
 	cmd.Flags().BoolVar(&o.Keep, "keep", o.Keep, "Do not delete temporary resources when command completes.")
 	cmd.Flags().MarkHidden("keep")
 
@@ -153,6 +155,9 @@ func (o *MustGatherOptions) Complete(f kcmdutil.Factory, cmd *cobra.Command, arg
 	}
 	if len(o.RunNamespace) > 0 {
 		fmt.Fprintln(o.ErrOut, `"--run-namespace" is an experimental flag, using it is not supported`)
+	}
+	if len(o.ServiceAccount) > 0 {
+		fmt.Fprintln(o.ErrOut, `"--service-account" is an experimental flag, using it is not supported`)
 	}
 	if err := o.completeImages(); err != nil {
 		return err
@@ -233,18 +238,19 @@ type MustGatherOptions struct {
 	ImageClient      imagev1client.ImageV1Interface
 	RESTClientGetter genericclioptions.RESTClientGetter
 
-	NodeName     string
-	NodeSelector string
-	HostNetwork  bool
-	DestDir      string
-	SourceDir    string
-	Images       []string
-	ImageStreams []string
-	Command      []string
-	Timeout      time.Duration
-	timeoutStr   string
-	RunNamespace string
-	Keep         bool
+	NodeName       string
+	NodeSelector   string
+	HostNetwork    bool
+	DestDir        string
+	SourceDir      string
+	Images         []string
+	ImageStreams   []string
+	Command        []string
+	Timeout        time.Duration
+	timeoutStr     string
+	RunNamespace   string
+	ServiceAccount string
+	Keep           bool
 
 	RsyncRshCmd string
 
@@ -763,6 +769,10 @@ func (o *MustGatherOptions) newPod(node, image string) *corev1.Pod {
 			},
 		}
 	}
+	if o.ServiceAccount != "" {
+		ret.Spec.ServiceAccountName = o.ServiceAccount
+	}
+
 	return ret
 }
 
